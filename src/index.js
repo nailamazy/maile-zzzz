@@ -480,11 +480,16 @@ function pageTemplate(title, body, extraHead = "") {
       .row{grid-template-columns:1fr}
       .mailFrame{height: 58vh;}
       
-      /* Admin page mobile optimization */
+      /* Admin page + Mail list mobile optimization */
       .listItem{flex-direction:column;align-items:flex-start!important}
       .listItem > div{width:100%!important;min-width:0!important}
       .listItem input{width:100%!important;max-width:none!important}
       .listItem button{flex:1;min-width:0;font-size:13px;padding:10px 12px}
+      
+      /* Mail list specific - ensure visibility */
+      #aliases{min-height:40px!important;display:block!important;visibility:visible!important}
+      #aliases > div{display:block!important;visibility:visible!important}
+      #aliases .listItem{display:flex!important;visibility:visible!important;opacity:1!important}
     }
   </style>
 </head>
@@ -783,6 +788,7 @@ const PAGES = {
       <div class="card" id="emailView" style="display:none"></div>
 
       <script>
+        const DOMAIN = '${domain}';
         let ME=null;
         let SELECTED=null;
         let AUTO_REFRESH_INTERVAL=null;
@@ -833,18 +839,21 @@ const PAGES = {
 
         async function loadAliases(){
           const j = await api('/api/aliases');
+          console.log('loadAliases response:', j); // DEBUG
           if(!j.ok){ alert(j.error||'gagal'); return; }
           const box = document.getElementById('aliases');
+          console.log('aliases box element:', box); // DEBUG
           box.innerHTML='';
           if(j.aliases.length===0){
             box.innerHTML='<div class="muted">Belum ada mail.</div>';
             return;
           }
+          console.log('Number of aliases:', j.aliases.length); // DEBUG
           for(const a of j.aliases){
             const div=document.createElement('div');
             div.style.marginBottom='10px';
             
-            const addr = a.local_part+'@${domain}';
+            const addr = a.local_part+'@'+DOMAIN;
             const isOpen = SELECTED===a.local_part;
             
             div.innerHTML =
@@ -861,6 +870,7 @@ const PAGES = {
               '<div id="inbox_'+a.local_part+'" style="display:'+(isOpen?'block':'none')+';margin-top:10px;padding-left:10px"></div>';
             
             box.appendChild(div);
+            console.log('Added alias:', addr); // DEBUG
           }
           
           if(SELECTED){ await loadEmails(); }
@@ -1008,7 +1018,7 @@ const PAGES = {
         }
 
         async function delAlias(local){
-          if(!confirm('Hapus mail '+local+'@${domain} ?')) return;
+          if(!confirm('Hapus mail '+local+'@'+DOMAIN+' ?')) return;
           const j = await api('/api/aliases/'+encodeURIComponent(local), {method:'DELETE'});
           if(!j.ok){ alert(j.error||'gagal'); return; }
           if(SELECTED===local){
